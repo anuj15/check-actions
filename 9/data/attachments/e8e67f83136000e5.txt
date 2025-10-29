@@ -1,0 +1,14 @@
+Executing common step
+Performing action
+Suite: regression
+Browser: chromium
+Base URL: dev-base-url
+Headless: True
+UI Pages: 1
+User Type: a
+API Pages: 1
+Company ID: 100
+Environment: stage
+Detailed Testing: False
+Number of Companies: 5
+Seeing the result
