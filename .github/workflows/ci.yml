@@ -1,10 +1,15 @@
 name: ci pipeline
 
 on:
+
+  schedule:
+    # 11:50 PM IST → 18:20 UTC
+    - cron: '20 18 * * *'
+    # 11:55 PM IST → 18:25 UTC
+    - cron: '25 18 * * *'
+
   workflow_dispatch:
-
     inputs:
-
       suite:
         description: 'Suite'
         required: true
@@ -13,55 +18,47 @@ on:
         options:
           - bvt
           - regression
-
       browser:
         description: 'Browser'
         required: true
         default: 'chromium'
         type: choice
         options: [ chromium, firefox, webkit ]
-
       user_type:
         description: 'User Type'
         required: true
         default: 'a'
         type: choice
         options: [ a, b, c ]
-
       environment:
         description: 'Environment'
         required: true
         default: 'prod'
         type: choice
         options: [ dev, stage, prod ]
-
       detailed_testing:
         description: 'Detailed Testing'
         required: true
         default: 'false'
         type: choice
         options: [ 'true', 'false' ]
-
       company_id:
         description: 'Enter company id for detailed testing'
         required: false
         default: '100'
         type: string
-
       number_of_companies:
         description: 'Number of Companies'
         required: true
         default: '5'
         type: choice
         options: [ '1','2','3','4','5' ]
-
       ui_pages:
         description: 'Number of Pages for UI Tests'
         required: true
         default: '1'
         type: choice
         options: [ '1','2','3' ]
-
       api_pages:
         description: 'Number of Pages for API Tests'
         required: true
@@ -78,7 +75,6 @@ env:
 jobs:
   tests:
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +98,22 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
+      - name: Set suite and environment for scheduled runs
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Scheduled cron: $GITHUB_EVENT_SCHEDULE"
+          if [ "$GITHUB_EVENT_SCHEDULE" = "20 18 * * *" ]; then
+            echo "suite=bvt" >> $GITHUB_ENV
+            echo "environment=prod-as" >> $GITHUB_ENV
+          elif [ "$GITHUB_EVENT_SCHEDULE" = "25 18 * * *" ]; then
+            echo "suite=regression" >> $GITHUB_ENV
+            echo "environment=prod-av" >> $GITHUB_ENV
+          else
+            echo "Unknown schedule, using defaults"
+            echo "suite=bvt" >> $GITHUB_ENV
+            echo "environment=prod-as" >> $GITHUB_ENV
+          fi
+
       - name: Set env from workflow_dispatch inputs
         if: github.event_name == 'workflow_dispatch'
         run: |
@@ -114,6 +126,11 @@ jobs:
           echo "user_type=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
           echo "ui_pages=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
           echo "api_pages=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
+
+      - name: Show suite & environment
+        run: |
+          echo "Running suite: $suite"
+          echo "Running environment: $environment"
 
       - name: Clean old Allure results
         run: rm -rf features/reports/allure-results/*

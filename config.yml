@@ -14,7 +14,20 @@ report_folder_location: features/reports
 allure_report_location: features/reports/allure-report
 dev:
   base_url: dev-base-url
-stage:
+stage: &stage_defaults
   base_url: stage-base-url
-prod:
+stage-av:
+  <<: *stage_defaults
+  base_url: stage-av-base-url
+stage-as:
+  <<: *stage_defaults
+  base_url: stage-as-base-url
+
+prod: &prod_defaults
   base_url: prod-base-url
+prod-av:
+  <<: *prod_defaults
+  base_url: prod-av-base-url
+prod-as:
+  <<: *prod_defaults
+  base_url: prod-as-base-url
