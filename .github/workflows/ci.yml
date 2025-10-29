@@ -105,31 +105,31 @@ jobs:
       - name: Set env from workflow_dispatch inputs
         if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "SUITE=${{ github.event.inputs.suite }}" >> $GITHUB_ENV
-          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-          echo "BROWSER=${{ github.event.inputs.browser }}" >> $GITHUB_ENV
-          echo "DETAILED_TESTING=${{ github.event.inputs.detailed_testing }}" >> $GITHUB_ENV
-          echo "COMPANY_ID=${{ github.event.inputs.company_id }}" >> $GITHUB_ENV
-          echo "NUMBER_OF_COMPANIES=${{ github.event.inputs.number_of_companies }}" >> $GITHUB_ENV
-          echo "USER_TYPE=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
-          echo "UI_PAGES=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
-          echo "API_PAGES=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
+          echo "suite=${{ github.event.inputs.suite }}" >> $GITHUB_ENV
+          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "browser=${{ github.event.inputs.browser }}" >> $GITHUB_ENV
+          echo "detailed_testing=${{ github.event.inputs.detailed_testing }}" >> $GITHUB_ENV
+          echo "company_id=${{ github.event.inputs.company_id }}" >> $GITHUB_ENV
+          echo "number_of_companies=${{ github.event.inputs.number_of_companies }}" >> $GITHUB_ENV
+          echo "user_type=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
+          echo "ui_pages=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
+          echo "api_pages=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
 
       - name: Clean old Allure results
         run: rm -rf features/reports/allure-results/*
 
       - name: Run Test Collection
         run: |
-          echo "Suite: $SUITE"
-          python -m pytest --collect-only -m "$SUITE"
+          echo "Suite: $suite"
+          python -m pytest --collect-only -m "$suite"
         continue-on-error: true
 
       - name: Run Pytest Shard
         run: |
           ALLURE_DIR=features/reports/allure-results/${{ matrix.shard }}
           mkdir -p $ALLURE_DIR
-          pytest -m "$SUITE and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }}
-          if [ "$SUITE" = "regression" ] && [ "${{ matrix.shard }}" = "0" ]; then
+          pytest -m "$suite and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }}
+          if [ "$suite" = "regression" ] && [ "${{ matrix.shard }}" = "0" ]; then
             pytest -m "no_shard"
           fi
 
