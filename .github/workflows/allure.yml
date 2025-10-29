@@ -1,0 +1,51 @@
+name: Allure Report
+
+on:
+  workflow_dispatch:
+
+  workflow_run:
+    workflows: [ "Daily Schedule", "Weekly Schedule" ]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  allure-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Allure Results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          merge-multiple: true
+          path: features/reports/allure-results
+        continue-on-error: true
+
+      - name: Get Allure History
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+          persist-credentials: true
+        continue-on-error: true
+
+      - name: Generate Allure Report
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: features/reports/allure-results
+          allure_history: gh-pages/allure-history
+          keep_reports: 7
+
+      - name: Deploy Allure report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: gh-pages/allure-history
+          force_orphan: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
