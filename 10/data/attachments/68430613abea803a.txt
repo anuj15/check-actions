@@ -1,0 +1,14 @@
+Executing common step
+Performing action
+Suite: bvt
+Browser: chromium
+Base URL: stage-base-url
+Headless: True
+UI Pages: 3
+User Type: b
+API Pages: 3
+Company ID: 109
+Environment: dev
+Detailed Testing: true
+Number of Companies: 3
+Seeing the result
