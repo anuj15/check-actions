@@ -1,13 +1,9 @@
-name: ci pipeline
+name: CI Pipeline
 
 on:
-
   schedule:
-    # 11:50 PM IST → 18:20 UTC
-    - cron: '20 18 * * *'
-    # 11:55 PM IST → 18:25 UTC
-    - cron: '25 18 * * *'
-
+    - cron: '45 18 * * *'
+    - cron: '50 18 * * *'
   workflow_dispatch:
     inputs:
       suite:
@@ -73,16 +69,16 @@ env:
   SHARD_COUNT: 2
 
 jobs:
-  tests:
+
+  bvt_job:
+    if: github.event_name == 'schedule' && github.event.schedule == '20 18 * * *' || github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'bvt'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         shard: [ 0, 1 ]
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -98,34 +94,23 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
 
-      - name: Set suite and environment for scheduled runs
-        if: github.event_name == 'schedule'
+      - name: Set environment variables
         run: |
-          echo "Scheduled cron: $GITHUB_EVENT_SCHEDULE"
-          if [ "$GITHUB_EVENT_SCHEDULE" = "20 18 * * *" ]; then
-            echo "suite=bvt" >> $GITHUB_ENV
-            echo "environment=prod-as" >> $GITHUB_ENV
-          elif [ "$GITHUB_EVENT_SCHEDULE" = "25 18 * * *" ]; then
-            echo "suite=regression" >> $GITHUB_ENV
-            echo "environment=prod-av" >> $GITHUB_ENV
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "suite=${{ github.event.inputs.suite }}" >> $GITHUB_ENV
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+            echo "browser=${{ github.event.inputs.browser }}" >> $GITHUB_ENV
+            echo "detailed_testing=${{ github.event.inputs.detailed_testing }}" >> $GITHUB_ENV
+            echo "company_id=${{ github.event.inputs.company_id }}" >> $GITHUB_ENV
+            echo "number_of_companies=${{ github.event.inputs.number_of_companies }}" >> $GITHUB_ENV
+            echo "user_type=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
+            echo "ui_pages=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
+            echo "api_pages=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
           else
-            echo "Unknown schedule, using defaults"
+            # Scheduled run
             echo "suite=bvt" >> $GITHUB_ENV
             echo "environment=prod-as" >> $GITHUB_ENV
           fi
-
-      - name: Set env from workflow_dispatch inputs
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "suite=${{ github.event.inputs.suite }}" >> $GITHUB_ENV
-          echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-          echo "browser=${{ github.event.inputs.browser }}" >> $GITHUB_ENV
-          echo "detailed_testing=${{ github.event.inputs.detailed_testing }}" >> $GITHUB_ENV
-          echo "company_id=${{ github.event.inputs.company_id }}" >> $GITHUB_ENV
-          echo "number_of_companies=${{ github.event.inputs.number_of_companies }}" >> $GITHUB_ENV
-          echo "user_type=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
-          echo "ui_pages=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
-          echo "api_pages=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
 
       - name: Show suite & environment
         run: |
@@ -135,11 +120,72 @@ jobs:
       - name: Clean old Allure results
         run: rm -rf features/reports/allure-results/*
 
-      - name: Run Test Collection
+      - name: Run Pytest Shard
         run: |
-          echo "Suite: $suite"
-          python -m pytest --collect-only -m "$suite"
-        continue-on-error: true
+          ALLURE_DIR=features/reports/allure-results/${{ matrix.shard }}
+          mkdir -p $ALLURE_DIR
+          pytest -m "$suite and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }}
+          if [ "$suite" = "regression" ] && [ "${{ matrix.shard }}" = "0" ]; then
+            pytest -m "no_shard"
+          fi
+
+      - name: Upload Allure Shard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ matrix.shard }}
+          path: features/reports/allure-results/${{ matrix.shard }}/*
+          retention-days: 7
+
+  regression_job:
+    if: github.event_name == 'schedule' && github.event.schedule == '25 18 * * *' || github.event_name == 'workflow_dispatch' && github.event.inputs.suite == 'regression'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [ 0, 1 ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-shard
+
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "suite=${{ github.event.inputs.suite }}" >> $GITHUB_ENV
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+            echo "browser=${{ github.event.inputs.browser }}" >> $GITHUB_ENV
+            echo "detailed_testing=${{ github.event.inputs.detailed_testing }}" >> $GITHUB_ENV
+            echo "company_id=${{ github.event.inputs.company_id }}" >> $GITHUB_ENV
+            echo "number_of_companies=${{ github.event.inputs.number_of_companies }}" >> $GITHUB_ENV
+            echo "user_type=${{ github.event.inputs.user_type }}" >> $GITHUB_ENV
+            echo "ui_pages=${{ github.event.inputs.ui_pages }}" >> $GITHUB_ENV
+            echo "api_pages=${{ github.event.inputs.api_pages }}" >> $GITHUB_ENV
+          else
+            # Scheduled run
+            echo "suite=regression" >> $GITHUB_ENV
+            echo "environment=prod-av" >> $GITHUB_ENV
+          fi
+
+      - name: Show suite & environment
+        run: |
+          echo "Running suite: $suite"
+          echo "Running environment: $environment"
+
+      - name: Clean old Allure results
+        run: rm -rf features/reports/allure-results/*
 
       - name: Run Pytest Shard
         run: |
@@ -160,11 +206,10 @@ jobs:
 
   allure-report:
     runs-on: ubuntu-latest
-    needs: [ tests ]
+    needs: [ bvt_job, regression_job ]
     if: always()
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Download Allure Results
         uses: actions/download-artifact@v4
@@ -188,12 +233,6 @@ jobs:
           allure_results: features/reports/allure-results
           allure_history: gh-pages/allure-history
           keep_reports: 7
-
-      - name: Pull latest gh-pages
-        run: |
-          git fetch origin gh-pages --
-          git checkout gh-pages --
-          git pull origin gh-pages
 
       - name: Deploy Allure report to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
