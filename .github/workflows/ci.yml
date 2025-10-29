@@ -99,9 +99,6 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-shard
 
-      - name: Install Playwright Browsers
-        run: python -m playwright install --with-deps
-
       - name: Set env from workflow_dispatch inputs
         if: github.event_name == 'workflow_dispatch'
         run: |
