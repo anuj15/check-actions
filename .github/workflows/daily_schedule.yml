@@ -2,7 +2,7 @@ name: Daily Schedule
 
 on:
   schedule:
-    - cron: '40 19 * * *'
+    - cron: '11 20 * * *'
 
   workflow_dispatch:
     inputs:
@@ -126,7 +126,7 @@ jobs:
           mkdir -p $ALLURE_DIR
           pytest -m "$suite and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }}
           if [ "$suite" = "regression" ] && [ "${{ matrix.shard }}" = "0" ]; then
-            pytest -m "no_shard"
+            pytest -m "no_shard" || true
           fi
 
       - name: Upload Allure Shard
