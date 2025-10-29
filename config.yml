@@ -1,0 +1,16 @@
+suite: regression # regression | bvt
+browser: chromium # chromium | firefox | webkit
+user_type: a # a | b | c
+environment: stage # dev | stage | prod
+detailed_testing: false # true | false
+company_id: 100 # 100, 101, 102
+number_of_companies: 5 # > 0
+ui_pages: 1 # > 0
+api_pages: 1 # > 0
+headless: true # true | false
+dev:
+  base_url: dev-base-url
+stage:
+  base_url: stage-base-url
+prod:
+  base_url: prod-base-url
