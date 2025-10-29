@@ -34,6 +34,11 @@ jobs:
           persist-credentials: true
         continue-on-error: true
 
+      - name: Create Allure Results and History Directories
+        run: |
+          mkdir -p features/reports/allure-results
+          mkdir -p gh-pages/allure-history
+
       - name: Generate Allure Report
         uses: simple-elf/allure-report-action@master
         with:
