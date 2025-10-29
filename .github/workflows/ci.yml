@@ -99,6 +99,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest-shard
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
+
       - name: Set env from workflow_dispatch inputs
         if: github.event_name == 'workflow_dispatch'
         run: |
