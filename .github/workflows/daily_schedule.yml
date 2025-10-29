@@ -124,9 +124,9 @@ jobs:
         run: |
           ALLURE_DIR=features/reports/allure-results/${{ matrix.shard }}
           mkdir -p $ALLURE_DIR
-          pytest -m "$suite and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }}
+          pytest -m "$suite and not no_shard" --alluredir=$ALLURE_DIR --num-shards=$SHARD_COUNT --shard-id=${{ matrix.shard }} || ([ $? -eq 5 ] && exit 0)
           if [ "$suite" = "regression" ] && [ "${{ matrix.shard }}" = "0" ]; then
-            pytest -m "no_shard" || true
+            pytest -m "no_shard" || ([ $? -eq 5 ] && exit 0)
           fi
 
       - name: Upload Allure Shard
